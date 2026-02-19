@@ -1,5 +1,7 @@
 # Git status: FA, FE (app), BE (server)
 
+**→ For clone / update / commit / push of all 3 repos, see [SUBMODULES_WORKFLOW.md](./SUBMODULES_WORKFLOW.md).**
+
 **Folder layout:** You're in **FA** (full app) at `FASAplayer\FASAPlayer`. It contains:
 - **app** → submodule pointing to **FE** (FESAPlayer) https://github.com/savvycodings/FESAPlayer
 - **server** → submodule pointing to **BE** (BESAPlayer) https://github.com/savvycodings/BESAPlayer

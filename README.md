@@ -20,6 +20,10 @@ Full stack framework for building cross-platform mobile AI apps supporting LLM r
 
 ![React Native AI Preview](https://i.imgur.com/D4LIVal.png)
 
+## Repo structure (FA + submodules)
+
+This repo (**FA** = FASAPlayer) contains two submodules: **app** (FESAPlayer) and **server** (BESAPlayer). For cloning with submodules, updating, committing, and pushing all three, see **[SUBMODULES_WORKFLOW.md](./SUBMODULES_WORKFLOW.md)**.
+
 ## Usage
 
 Generate a new project by running:
