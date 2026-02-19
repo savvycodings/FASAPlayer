@@ -1,0 +1,6 @@
+[submodule "app"]
+	path = app
+	url = https://github.com/savvycodings/FESAPlayer.git
+[submodule "server"]
+	path = server
+	url = https://github.com/savvycodings/BESAPlayer.git
