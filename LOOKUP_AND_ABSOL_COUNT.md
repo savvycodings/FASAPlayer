@@ -15,9 +15,10 @@ We still **sort** the list when you entered a card number (exact number match go
 
 ## How many “Absol” cards do we get from search?
 
-- The **Pokedata search API** returns **every matching card** across all sets. For a name like **“absol”** you typically get **dozens** of results: e.g. “Absol” from Prismatic Evolutions, “Absol ex” from another set, “Absol” from older sets, etc. Each result has a unique **id**, plus **name**, **set**, **number**.
-- The exact count depends on Pokedata’s data (and any limit they apply). The server logs: `Found ${results.length} cards` in `server/src/pokedata/client.ts`. So you can run a search and check the server console to see the number for “absol” or any query.
-- We **don’t fetch prices** in the search step. We only fetch price when you **select** a card (or when we auto-select the first), which calls **GET /pokedata/card/:id** and updates `card_prices` (and shows market/eBay). So:
+- We **request only 3** (default) via **GET /pokedata/search?query=...&limit=3**. Eco: we almost always use the first; the other 2 are there in case the user taps “wrong set”.
+- **How we pick the right card:** If you entered a **card number** (e.g. 172), we **sort** the results so the one with that number is **first**. Then we auto-apply the first. So “first” is usually the exact printing (name + set + number). If not, the user can tap one of the other 2 from the list.
+- The Pokedata API may still return more (e.g. 50) if it doesn’t honour `limit`; we **slice to 3** and only cache/return 3.
+- We **don’t fetch prices** in the search step. We only fetch price when you **select** a card (or when we auto-select the first), which calls **GET /pokedata/card/:id** and updates `card_prices`. So:
   - **Search “absol”** → many card **ids** (one per printing).
   - **Number of Absol cards we have prices for** = number of those **ids** that have been selected at least once (and thus are in **card_prices**). That grows as users (or you) look up different Absol printings.
 
