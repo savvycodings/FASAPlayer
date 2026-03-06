@@ -141,3 +141,4 @@ Updating “all three repos to main” means:
 1) **BE:** commit in `server`, put that on `main`, `git push origin main`.  
 2) **FE:** put `app`’s current commit on `main`, `git push origin main`.  
 3) **FA:** optionally commit the new doc (and `server` submodule pointer if it changed), then `git push origin main`.
+.
