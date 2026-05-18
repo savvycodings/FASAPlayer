@@ -36,7 +36,7 @@ git submodule update --init --recursive
 - `git pull origin main` updates the main repo (FA) to the latest `main`.
 - `git submodule update --init --recursive` updates **app** and **server** to the commits that FA expects (what the other dev pushed).
 
-**If you want submodules to follow their own latest `main`** (not just what FA pins):
+**If you want submodules .to follow their own latest `main`** (not just what FA pins):
 
 ```powershell
 cd c:\path\to\gradeit
