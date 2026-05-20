@@ -1,0 +1,22 @@
+{
+  "name": "fasaplayer",
+  "private": true,
+  "description": "FASAPlayer monorepo — run package scripts from app/, server/, or web/ via these shortcuts",
+  "scripts": {
+    "fetch-pokedata-sets": "pnpm --dir server fetch-pokedata-sets",
+    "fetch-set-cards": "pnpm --dir server fetch-set-cards",
+    "fetch-set-cards:status": "pnpm --dir server fetch-set-cards:status",
+    "mirror-set-cards": "pnpm --dir server mirror-set-cards",
+    "sync-set-cards:json": "pnpm --dir server sync-set-cards:json",
+    "db:ensure-market": "pnpm --dir server db:ensure-market",
+    "db:baseline": "pnpm --dir server db:baseline",
+    "update-db": "pnpm --dir server update-db",
+    "update-db:json": "pnpm --dir server update-db:json",
+    "fetch-tcg-sets": "pnpm --dir server fetch-tcg-sets",
+    "server:dev": "pnpm --dir server dev",
+    "app:dev": "pnpm --dir app start",
+    "web:dev": "pnpm --dir web dev",
+    "sync-card-prices": "pnpm --dir server sync-card-prices",
+    "db:ensure-price-sync": "pnpm --dir server db:ensure-price-sync"
+  }
+}

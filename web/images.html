@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FASAPlayer — Images &amp; set mapping</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="page-images">
+    <header class="header">
+      <div class="header-start">
+        <nav class="site-nav" aria-label="Site">
+          <a href="/">Admin</a>
+          <a href="/architecture.html">Architecture</a>
+          <a href="/images.html" class="active" aria-current="page">Images</a>
+        </nav>
+        <div>
+          <h1 id="title">FASAPlayer</h1>
+          <p id="subtitle" class="subtitle"></p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <label class="search-label">
+          <span class="sr-only">Filter components</span>
+          <input type="search" id="filter" placeholder="Filter components…" autocomplete="off" />
+        </label>
+        <button type="button" id="btn-reset" class="btn btn-ghost">Clear flow</button>
+      </div>
+    </header>
+
+    <section class="page-intro" aria-labelledby="intro-heading">
+      <h2 id="intro-heading" class="page-intro-title">Three systems, not one</h2>
+      <p class="page-intro-text">
+        <strong>Pokedata</strong> answers which card and what it is worth.
+        <strong>images.pokemontcg.io</strong> serves official scans from set code + number.
+        <strong>Cloudinary</strong> stores photos you take. They meet when
+        <code>setToSetCode()</code> maps Pokedata set names to CDN codes (e.g. Vivid Voltage → <code>swsh4</code>).
+      </p>
+    </section>
+
+    <section class="diagrams-section" aria-labelledby="diagrams-heading">
+      <h2 id="diagrams-heading" class="diagrams-heading">Reference diagrams</h2>
+      <div id="diagram-cards" class="diagram-cards"></div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Image flows">
+        <h2 class="sidebar-title">Image flows</h2>
+        <p class="sidebar-hint">Click a flow to highlight paths. Start with <strong>Two set languages → one CDN</strong>.</p>
+        <ul id="flow-list" class="flow-list"></ul>
+        <section class="detail-panel" id="detail-panel" hidden>
+          <h3 id="detail-title"></h3>
+          <p id="detail-desc" class="detail-desc"></p>
+          <dl id="detail-meta" class="detail-meta"></dl>
+          <ol id="detail-steps" class="detail-steps" hidden></ol>
+          <div id="detail-cache" class="detail-cache" hidden></div>
+        </section>
+        <section class="docs-link">
+          <p>Source: <code>web/data/images.json</code></p>
+          <p>App: <code>pokemonTcgSetCodes.ts</code> · Server: <code>setCodeMap.ts</code></p>
+          <p>Refresh sets: <code>pnpm run fetch-tcg-sets</code> (server)</p>
+        </section>
+      </aside>
+
+      <main class="canvas-wrap">
+        <div id="layers" class="layers"></div>
+        <svg id="connections" class="connections" aria-hidden="true"></svg>
+      </main>
+    </div>
+
+    <footer class="footer">
+      <span>Dev resource only — not shipped with the mobile app.</span>
+      <span id="ports-hint"></span>
+    </footer>
+
+    <script type="module" src="/images.js"></script>
+  </body>
+</html>

@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "title": "FASAPlayer",
+    "subtitle": "Architecture landscape & data flows",
+    "description": "Dev-only map of app → API → database → external services. Layers are top-to-bottom (not port left-to-right).",
+    "ports": {
+      "expo": 8081,
+      "server": 3050
+    }
+  },
+  "layers": [
+    {
+      "id": "client",
+      "name": "Expo app",
+      "hint": "React Native · React Navigation",
+      "color": "#3b82f6",
+      "components": [
+        { "id": "app-entry", "name": "App.tsx", "path": "app/App.tsx", "kind": "entry", "summary": "Providers, fonts, AuthProvider" },
+        { "id": "root-nav", "name": "RootNavigator", "path": "app/src/navigation/RootNavigator.tsx", "kind": "navigation", "summary": "Onboarding → Login → Main" },
+        { "id": "main-tabs", "name": "Main tabs", "path": "app/src/main.tsx", "kind": "navigation", "summary": "Shop · Search · Grade · Profile · My Store" },
+        { "id": "api-base", "name": "getApiBaseUrl", "path": "app/src/utils/apiBaseUrl.ts", "kind": "config", "summary": "LAN rewrite for device dev" },
+        { "id": "auth-client", "name": "authClient", "path": "app/src/lib/auth-client.ts", "kind": "auth", "summary": "Better Auth session in SecureStore" },
+        { "id": "async-storage", "name": "AsyncStorage", "path": "app/src/context/AuthContext.tsx", "kind": "cache", "summary": "hasSeenOnboarding, authToken flag (not portfolio)" },
+        { "id": "profile-state", "name": "Profile React state", "path": "app/src/screens/profile.tsx", "kind": "cache", "summary": "In-memory only: collections, prices, chart — cleared when app killed" },
+        { "id": "product-grid", "name": "ProductGrid", "path": "app/src/components/profile/ProductGrid.tsx", "kind": "ui", "summary": "Card images, R prices, Listed badge" },
+        { "id": "shop", "name": "Shop", "path": "app/src/screens/shop.tsx", "kind": "screen", "summary": "Marketplace home, recent listings" },
+        { "id": "my-store", "name": "My Store", "path": "app/src/screens/myStore.tsx", "kind": "screen", "summary": "Listings, orders, auctions, ISO" },
+        { "id": "profile", "name": "Profile tab", "path": "app/src/screens/profile.tsx", "kind": "screen", "summary": "Portfolio: collections, market prices, chart" },
+        { "id": "grade", "name": "Grade", "path": "app/src/screens/grade.tsx", "kind": "screen", "summary": "Camera scan → recognize" },
+        { "id": "login", "name": "Login", "path": "app/src/screens/auth/Login.tsx", "kind": "screen", "summary": "Sign-in / register" },
+        { "id": "payfast-ui", "name": "PayFastPayment", "path": "app/src/components/payment/PayFastPayment.tsx", "kind": "component", "summary": "Checkout WebView / form" }
+      ]
+    },
+    {
+      "id": "api",
+      "name": "Express server",
+      "hint": "Port 3050 · index.ts mounts routers",
+      "color": "#10b981",
+      "components": [
+        { "id": "index", "name": "index.ts", "path": "server/src/index.ts", "kind": "entry", "summary": "CORS, Better Auth before JSON, routers" },
+        { "id": "better-auth", "name": "Better Auth", "path": "server/src/auth/auth.ts", "kind": "auth", "summary": "/api/auth/* · sessions in DB" },
+        { "id": "store-router", "name": "storeRouter", "path": "server/src/store/storeRouter.ts", "kind": "router", "summary": "Store, profile, listings, PUDO, verify" },
+        { "id": "pokedata-lookup", "name": "getCardLookupOrFetch", "path": "server/src/pokedata/lookup.ts", "kind": "service", "summary": "48h TTL → card_prices; calls Pokedata if stale" },
+        { "id": "payfast-router", "name": "payfastRouter", "path": "server/src/payment/payfastRouter.ts", "kind": "router", "summary": "Checkout, ITN webhook" },
+        { "id": "pokedata-router", "name": "pokedataRouter", "path": "server/src/pokedata/pokedataRouter.ts", "kind": "router", "summary": "Recognize, grade, search, pricing" },
+        { "id": "images-router", "name": "imagesRouter", "path": "server/src/images/imagesRouter.ts", "kind": "router", "summary": "Cloudinary / Fal uploads" },
+        { "id": "chat-router", "name": "chatRouter", "path": "server/src/chat/chatRouter.ts", "kind": "router", "summary": "LLM proxies (legacy template)" }
+      ]
+    },
+    {
+      "id": "data",
+      "name": "PostgreSQL",
+      "hint": "Drizzle ORM · Neon",
+      "color": "#8b5cf6",
+      "components": [
+        { "id": "schema", "name": "schema.ts", "path": "server/src/db/schema.ts", "kind": "schema", "summary": "All table definitions" },
+        { "id": "tbl-users", "name": "users", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Name, avatar, XP, portfolioValue snapshot" },
+        { "id": "tbl-sessions", "name": "sessions", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Better Auth session tokens" },
+        { "id": "tbl-stores", "name": "stores", "path": "server/src/db/schema.ts", "kind": "table", "summary": "1:1 seller storefront" },
+        { "id": "tbl-listings", "name": "store_listings", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Items for sale" },
+        { "id": "tbl-collections", "name": "collections", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Your cards/sealed/slabs (inventory)" },
+        { "id": "tbl-orders", "name": "orders", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Purchases & shipping" },
+        { "id": "tbl-card-prices", "name": "card_prices", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Server cache: market USD, imageUrl, last_fetched_at (48h)" },
+        { "id": "tbl-price-history", "name": "card_price_history", "path": "server/src/db/schema.ts", "kind": "table", "summary": "Daily snapshots for portfolio chart" },
+        { "id": "tbl-verify", "name": "verification_orders", "path": "server/src/db/schema.ts", "kind": "table", "summary": "R100 verify + PUDO" }
+      ]
+    },
+    {
+      "id": "external",
+      "name": "External services",
+      "hint": "APIs & webhooks",
+      "color": "#f59e0b",
+      "components": [
+        { "id": "pokedata-api", "name": "Pokedata API", "path": "server/src/pokedata/", "kind": "external", "summary": "Market price USD — only if card_prices stale" },
+        { "id": "payfast", "name": "PayFast", "path": "server/src/payment/", "kind": "external", "summary": "ZA payments + ITN callback" },
+        { "id": "cloudinary", "name": "Cloudinary", "path": "app/src/utils/imageUpload.ts", "kind": "external", "summary": "User-uploaded photos (not TCG artwork)" },
+        { "id": "expo-push", "name": "Expo Push", "path": "server/src/lib/expoPush.ts", "kind": "external", "summary": "Dropoff / order notifications" }
+      ]
+    }
+  ],
+  "connections": [
+    { "id": "c-auth", "from": "auth-client", "to": "better-auth", "label": "session cookie / token", "flowIds": ["auth-login", "view-profile"] },
+    { "id": "c-login", "from": "login", "to": "better-auth", "label": "sign-in / sign-up", "flowIds": ["auth-login"] },
+    { "id": "c-profile-session", "from": "profile", "to": "auth-client", "label": "getSession() each fetch", "flowIds": ["view-profile", "add-card-collection"] },
+    { "id": "c-profile-user", "from": "profile", "to": "store-router", "label": "GET /api/profile/user", "flowIds": ["view-profile"] },
+    { "id": "c-profile-user-db", "from": "store-router", "to": "tbl-users", "label": "SELECT user row", "flowIds": ["view-profile"] },
+    { "id": "c-profile-coll", "from": "profile", "to": "store-router", "label": "GET /api/profile/collections", "flowIds": ["view-profile", "add-card-collection"] },
+    { "id": "c-profile-db", "from": "store-router", "to": "tbl-collections", "label": "SELECT collections", "flowIds": ["view-profile", "add-card-collection"] },
+    { "id": "c-profile-prices", "from": "store-router", "to": "tbl-card-prices", "label": "JOIN card_prices (no API if fresh)", "flowIds": ["view-profile"] },
+    { "id": "c-profile-listings", "from": "store-router", "to": "tbl-listings", "label": "isListed badges", "flowIds": ["view-profile"] },
+    { "id": "c-profile-history", "from": "profile", "to": "store-router", "label": "GET /api/profile/portfolio/history", "flowIds": ["view-profile"] },
+    { "id": "c-profile-history-db", "from": "store-router", "to": "tbl-price-history", "label": "90-day chart aggregates", "flowIds": ["view-profile"] },
+    { "id": "c-profile-state", "from": "profile", "to": "profile-state", "label": "setState from API JSON", "flowIds": ["view-profile"] },
+    { "id": "c-profile-ui", "from": "profile", "to": "product-grid", "label": "renders products[]", "flowIds": ["view-profile"] },
+    { "id": "c-add-card-post", "from": "profile", "to": "store-router", "label": "POST /api/profile/collections", "flowIds": ["add-card-collection"] },
+    { "id": "c-add-card-prime", "from": "store-router", "to": "pokedata-lookup", "label": "getCardLookupOrFetch if cardId", "flowIds": ["add-card-collection"] },
+    { "id": "c-add-card-api", "from": "pokedata-lookup", "to": "pokedata-api", "label": "only if cache >48h old", "flowIds": ["add-card-collection"] },
+    { "id": "c-add-card-write", "from": "pokedata-lookup", "to": "tbl-card-prices", "label": "UPSERT card_prices", "flowIds": ["add-card-collection"] },
+    { "id": "c-listing-post", "from": "my-store", "to": "store-router", "label": "POST /api/store/listings", "flowIds": ["create-listing"] },
+    { "id": "c-listing-get", "from": "my-store", "to": "store-router", "label": "GET /api/store/listings", "flowIds": ["create-listing"] },
+    { "id": "c-listing-db", "from": "store-router", "to": "tbl-listings", "label": "INSERT store_listings", "flowIds": ["create-listing"] },
+    { "id": "c-store-lookup", "from": "store-router", "to": "tbl-stores", "label": "SELECT stores", "flowIds": ["create-listing"] },
+    { "id": "c-price-check", "from": "store-router", "to": "tbl-card-prices", "label": "80% market min", "flowIds": ["create-listing"] },
+    { "id": "c-upload", "from": "my-store", "to": "cloudinary", "label": "uploadImage()", "flowIds": ["create-listing"] },
+    { "id": "c-shop-recent", "from": "shop", "to": "store-router", "label": "GET /api/listings/recent", "flowIds": ["browse-shop"] },
+    { "id": "c-pay", "from": "payfast-ui", "to": "payfast-router", "label": "POST /payment/create-payment", "flowIds": ["buy-listing"] },
+    { "id": "c-pay-itn", "from": "payfast", "to": "payfast-router", "label": "POST /payment/itn", "flowIds": ["buy-listing"] },
+    { "id": "c-pay-orders", "from": "payfast-router", "to": "tbl-orders", "label": "INSERT orders", "flowIds": ["buy-listing"] },
+    { "id": "c-grade", "from": "grade", "to": "pokedata-router", "label": "POST /pokedata/recognize", "flowIds": ["scan-card"] },
+    { "id": "c-poke-ext", "from": "pokedata-router", "to": "pokedata-api", "label": "external API", "flowIds": ["scan-card"] },
+    { "id": "c-poke-cache", "from": "pokedata-router", "to": "tbl-card-prices", "label": "cache prices", "flowIds": ["scan-card"] },
+    { "id": "c-drizzle", "from": "store-router", "to": "schema", "label": "Drizzle queries", "flowIds": ["view-profile", "add-card-collection", "create-listing", "buy-listing", "auth-login"] },
+    { "id": "c-index-store", "from": "index", "to": "store-router", "label": "app.use('/')", "flowIds": [] },
+    { "id": "c-index-auth", "from": "index", "to": "better-auth", "label": "app.all /api/auth", "flowIds": ["auth-login", "view-profile"] },
+    { "id": "c-auth-storage", "from": "auth-client", "to": "async-storage", "label": "onboarding flag only", "flowIds": ["auth-login"] }
+  ],
+  "flows": [
+    {
+      "id": "view-profile",
+      "name": "View Profile tab (portfolio)",
+      "description": "Profile tab = your collection portfolio: card images, market prices in ZAR (ProductGrid), stats, portfolio chart. Called \"collections\" in API/DB — not the same as My Store listings.",
+      "connectionIds": [
+        "c-profile-session", "c-profile-user", "c-profile-user-db", "c-profile-coll",
+        "c-profile-db", "c-profile-prices", "c-profile-listings", "c-profile-history",
+        "c-profile-history-db", "c-profile-state", "c-profile-ui", "c-auth", "c-index-auth", "c-drizzle"
+      ],
+      "cacheLayers": [
+        { "where": "Device — SecureStore", "what": "Better Auth session token (via authClient)", "persist": "Survives app restart", "recalled": "Every API call: authClient.getSession()" },
+        { "where": "Device — AsyncStorage", "what": "hasSeenOnboarding, authToken string", "persist": "Survives restart", "recalled": "Auth gate only — not portfolio data" },
+        { "where": "Device — React state", "what": "collections[], portfolioValue, portfolioData, user, stats", "persist": "While Profile screen mounted / app in memory", "recalled": "UI reads state; NOT written to disk" },
+        { "where": "Server — collections table", "what": "Your inventory rows (name, cardId, image, set)", "persist": "Permanent in Postgres", "recalled": "Every GET /api/profile/collections" },
+        { "where": "Server — card_prices table", "what": "marketPrice USD, imageUrl, ebayLastSold, last_fetched_at", "persist": "Permanent; refreshed max every 48h", "recalled": "On collections GET — no Pokedata call if fresh" },
+        { "where": "Server — card_price_history", "what": "Daily price snapshots for chart", "persist": "Permanent", "recalled": "GET /api/profile/portfolio/history?days=90" }
+      ],
+      "steps": [
+        { "title": "1. Open Profile tab", "detail": "Bottom tab → ProfileStack → profile.tsx mounts." },
+        { "title": "2. First load (useEffect)", "detail": "fetchUserProfile(), fetchCollections(), fetchPortfolioHistory() — 3 parallel API calls with Bearer token." },
+        { "title": "3. Leave & return (useFocusEffect)", "detail": "Switching to Shop/Grade/etc. then back: silent refetch — same 3 APIs again. No AsyncStorage portfolio cache; always fresh from server." },
+        { "title": "4. Pull to refresh", "detail": "onRefresh → same 3 APIs; updates React state in place." },
+        { "title": "5. Server: collections", "detail": "SELECT collections for user → JOIN card_prices by cardId → attach marketPrice, cardImageUrl, isListed from store_listings." },
+        { "title": "6. App: display", "detail": "Maps to ProductGrid: USD→ZAR, prefers cardImageUrl / Pokémon TCG CDN / placeholder. Shows R price, Listed badge." },
+        { "title": "7. What is NOT cached on device", "detail": "Card list and prices are not saved to SecureStore/AsyncStorage. Kill app → remount refetches from DB." }
+      ]
+    },
+    {
+      "id": "add-card-collection",
+      "name": "Add card to portfolio",
+      "description": "Add Card modal → POST collection → optional Pokedata fetch to prime card_prices (48h server cache). Then Profile refetches on focus.",
+      "connectionIds": [
+        "c-add-card-post", "c-add-card-prime", "c-add-card-api", "c-add-card-write",
+        "c-profile-db", "c-profile-coll", "c-profile-session", "c-drizzle"
+      ],
+      "steps": [
+        { "title": "1. User adds card", "detail": "AddCardModal → POST /api/profile/collections with cardId, name, set, image." },
+        { "title": "2. Server writes inventory", "detail": "INSERT into collections table." },
+        { "title": "3. Prime price cache", "detail": "If cardId set: getCardLookupOrFetch() — reads card_prices; if last_fetched_at >48h, calls Pokedata API and UPSERTs card_prices." },
+        { "title": "4. Back on Profile", "detail": "useFocusEffect runs fetchCollections({ silent: true }) — new card appears with market price from DB cache." }
+      ]
+    },
+    {
+      "id": "auth-login",
+      "name": "Sign in",
+      "description": "Better Auth session stored in SecureStore; Bearer token used for API calls on device.",
+      "connectionIds": ["c-auth", "c-login", "c-index-auth", "c-auth-storage", "c-drizzle"]
+    },
+    {
+      "id": "create-listing",
+      "name": "Create store listing",
+      "description": "Seller uploads photos → POST listing → store_listings row. Shop shows via /api/listings/recent.",
+      "connectionIds": ["c-upload", "c-listing-post", "c-store-lookup", "c-price-check", "c-listing-db", "c-listing-get", "c-drizzle"]
+    },
+    {
+      "id": "browse-shop",
+      "name": "Browse shop",
+      "description": "Public recent listings for marketplace home.",
+      "connectionIds": ["c-shop-recent", "c-listing-db"]
+    },
+    {
+      "id": "buy-listing",
+      "name": "Buy listing (PayFast)",
+      "description": "Checkout → PayFast → ITN webhook updates order status.",
+      "connectionIds": ["c-pay", "c-pay-itn", "c-pay-orders", "c-drizzle"]
+    },
+    {
+      "id": "scan-card",
+      "name": "Grade / recognize card",
+      "description": "Camera image → pokedata recognize → optional price cache.",
+      "connectionIds": ["c-grade", "c-poke-ext", "c-poke-cache"]
+    }
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "meta": {
+    "title": "FASAPlayer — Images & sets",
+    "subtitle": "Pokedata vs Pokémon TCG CDN vs Cloudinary — how card pictures are resolved",
+    "portsHint": "CDN: images.pokemontcg.io · User photos: Cloudinary",
+    "defaultFlowId": "two-set-languages"
+  },
+  "diagrams": [
+    {
+      "id": "two-set-languages",
+      "title": "Two set languages → one CDN",
+      "description": "Pokedata and images.pokemontcg.io use different identifiers for the same card. setToSetCode() bridges them.",
+      "mermaid": "flowchart LR\n  subgraph PD[\"Pokedata language\"]\n    PD_ID[\"card id: 59268\"]\n    PD_NAME[\"set_name: Vivid Voltage\"]\n    PD_NUM[\"num: 025\"]\n    PD_SET[\"set_id / set_code\"]\n  end\n  subgraph MAP[\"setToSetCode()\"]\n    JSON[\"pokemonTcgSets.json\\nnameToId\"]\n    STATIC[\"App static maps\\nSET_NAME_TO_CODE…\"]\n  end\n  subgraph CDN[\"CDN language\"]\n    CODE[\"set code: swsh4\"]\n    NUM[\"number: 025\"]\n    URL[\"images.pokemontcg.io/\\nswsh4/025_hires.png\"]\n  end\n  PD_NAME --> JSON\n  PD_NAME --> STATIC\n  PD_SET --> STATIC\n  JSON --> CODE\n  STATIC --> CODE\n  PD_NUM --> URL\n  CODE --> URL"
+    },
+    {
+      "id": "profile-image-waterfall",
+      "title": "Profile grid image waterfall",
+      "description": "What the app tries, in order, when showing a collection card.",
+      "mermaid": "flowchart TD\n  START[\"Profile ProductGrid\"] --> S1{\"cardImageUrl\\nfrom server?\"}\n  S1 -->|yes| SHOW[\"Image uri\"]\n  S1 -->|no| S2[\"Client CDN build\\nset + number\"]\n  S2 --> S3{\"On CDN?\"}\n  S3 -->|yes| SHOW\n  S3 -->|no| S4[\"cardId swsh4-025 format?\"]\n  S4 --> S5{\"collection.image\\nCloudinary?\"}\n  S5 -->|yes| SHOW\n  S5 -->|no| PLACE[\"Placeholder URI\"]"
+    },
+    {
+      "id": "photo-vs-art",
+      "title": "User photo vs official art",
+      "description": "Two hosts: Cloudinary for camera uploads, pokemontcg.io for scans.",
+      "mermaid": "flowchart LR\n  subgraph ART[\"Official art\"]\n    META[\"set + number\\nor Pokedata cache\"]\n    BUILD[\"pokemonTcgImages / buildImageUrl\"]\n    TCG[\"images.pokemontcg.io\"]\n  end\n  subgraph PHOTO[\"User photo\"]\n    CAM[\"ImagePicker\\nfile:// blob:\"]\n    UP[\"imageUpload.ts\"]\n    API[\"POST /images/upload-base64\"]\n    CL[\"Cloudinary\"]\n  end\n  META --> BUILD --> TCG\n  CAM --> UP --> API --> CL"
+    }
+  ],
+  "layers": [
+    {
+      "id": "identifiers",
+      "name": "Two set languages",
+      "hint": "Same physical card — different field names per system",
+      "color": "#f59e0b",
+      "components": [
+        {
+          "id": "pd-lang",
+          "name": "Pokedata language",
+          "path": "External API",
+          "kind": "identifier",
+          "summary": "card id 59268 · set_name \"Vivid Voltage\" · num 025 · set_id 557 · set_code SWSH04"
+        },
+        {
+          "id": "user-lang",
+          "name": "Collection / user language",
+          "path": "collections.set",
+          "kind": "identifier",
+          "summary": "Free-text set on inventory row; may match Pokedata name or TCG code"
+        },
+        {
+          "id": "cdn-lang",
+          "name": "CDN language",
+          "path": "images.pokemontcg.io",
+          "kind": "identifier",
+          "summary": "Official TCG set code swsh4 + number 025 → …/swsh4/025_hires.png"
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "name": "Expo app",
+      "hint": "Client-side URL building + uploads",
+      "color": "#3b82f6",
+      "components": [
+        {
+          "id": "api-base",
+          "name": "getApiBaseUrl",
+          "path": "app/src/utils/apiBaseUrl.ts",
+          "kind": "config",
+          "summary": "DOMAIN → server :3050; rewrites localhost to LAN / 10.0.2.2 on device"
+        },
+        {
+          "id": "tcg-json-app",
+          "name": "pokemonTcgSets.json",
+          "path": "app/src/utils/pokemonTcgSets.json",
+          "kind": "data",
+          "summary": "Official set list (name → id). From fetch-pokemon-tcg-sets.ts"
+        },
+        {
+          "id": "set-codes-app",
+          "name": "pokemonTcgSetCodes",
+          "path": "app/src/utils/pokemonTcgSetCodes.ts",
+          "kind": "mapper",
+          "summary": "setToSetCode(): JSON + static fallbacks + Pokedata numeric id map"
+        },
+        {
+          "id": "tcg-images",
+          "name": "pokemonTcgImages",
+          "path": "app/src/utils/pokemonTcgImages.ts",
+          "kind": "builder",
+          "summary": "Builds pokemontcg.io URLs; skips SET_CODES_NOT_ON_CDN (asc, pfl)"
+        },
+        {
+          "id": "image-upload",
+          "name": "imageUpload",
+          "path": "app/src/utils/imageUpload.ts",
+          "kind": "upload",
+          "summary": "file:// / blob: → POST /images/upload-base64 → Cloudinary URL"
+        },
+        {
+          "id": "profile-screen",
+          "name": "Profile / AddCardModal",
+          "path": "app/src/screens/profile.tsx",
+          "kind": "screen",
+          "summary": "Prefers server cardImageUrl; else client CDN build; else placeholder"
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "name": "Express server",
+      "hint": "Port 3050 · cache + mapping",
+      "color": "#10b981",
+      "components": [
+        {
+          "id": "pokedata-router",
+          "name": "pokedataRouter",
+          "path": "server/src/pokedata/",
+          "kind": "router",
+          "summary": "/pokedata/search · /pokedata/card/:id · recognize · grade"
+        },
+        {
+          "id": "lookup",
+          "name": "getCardLookupOrFetch",
+          "path": "server/src/pokedata/lookup.ts",
+          "kind": "service",
+          "summary": "48h card_prices cache; buildImageUrl from setName when setId null"
+        },
+        {
+          "id": "set-code-server",
+          "name": "setCodeMap",
+          "path": "server/src/pokedata/setCodeMap.ts",
+          "kind": "mapper",
+          "summary": "setToSetCode() from pokemonTcgSets.json only (no static fallbacks)"
+        },
+        {
+          "id": "store-router",
+          "name": "storeRouter collections",
+          "path": "server/src/store/storeRouter.ts",
+          "kind": "router",
+          "summary": "GET /api/profile/collections → cardImageUrl from card_prices + build"
+        },
+        {
+          "id": "images-router",
+          "name": "imagesRouter",
+          "path": "server/src/images/imagesRouter.ts",
+          "kind": "router",
+          "summary": "POST /images/upload-base64 → Cloudinary"
+        }
+      ]
+    },
+    {
+      "id": "external",
+      "name": "External hosts",
+      "hint": "No single API for both price and artwork",
+      "color": "#a855f7",
+      "components": [
+        {
+          "id": "pokedata-api",
+          "name": "Pokedata API",
+          "path": "Pricing / search / recognize",
+          "kind": "external",
+          "summary": "USD prices, card metadata — not the portfolio artwork CDN"
+        },
+        {
+          "id": "tcg-cdn",
+          "name": "images.pokemontcg.io",
+          "path": "https://images.pokemontcg.io/{set}/{num}_hires.png",
+          "kind": "cdn",
+          "summary": "Official card scans — set code + number only"
+        },
+        {
+          "id": "cloudinary",
+          "name": "Cloudinary",
+          "path": "res.cloudinary.com",
+          "kind": "cdn",
+          "summary": "User photos: listings, avatars, optional collection.image"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-pd-to-lookup",
+      "from": "pokedata-api",
+      "to": "lookup",
+      "label": "pricing when cache stale",
+      "flowIds": ["pokedata-cache", "two-set-languages"]
+    },
+    {
+      "id": "c-lookup-setmap",
+      "from": "lookup",
+      "to": "set-code-server",
+      "label": "setToSetCode(setName)",
+      "flowIds": ["two-set-languages", "pokedata-cache"]
+    },
+    {
+      "id": "c-setmap-json-srv",
+      "from": "set-code-server",
+      "to": "tcg-json-app",
+      "label": "reads pokemonTcgSets.json",
+      "flowIds": ["two-set-languages"]
+    },
+    {
+      "id": "c-lookup-cdn",
+      "from": "lookup",
+      "to": "tcg-cdn",
+      "label": "buildImageUrl → hires URL",
+      "flowIds": ["two-set-languages", "pokedata-cache", "profile-card-image"]
+    },
+    {
+      "id": "c-store-lookup",
+      "from": "store-router",
+      "to": "lookup",
+      "label": "prime cache on add card",
+      "flowIds": ["pokedata-cache", "profile-card-image"]
+    },
+    {
+      "id": "c-store-cdn",
+      "from": "store-router",
+      "to": "tcg-cdn",
+      "label": "cardImageUrl on GET collections",
+      "flowIds": ["profile-card-image"]
+    },
+    {
+      "id": "c-profile-api",
+      "from": "profile-screen",
+      "to": "api-base",
+      "label": "DOMAIN for fetch",
+      "flowIds": ["profile-card-image", "upload-photo"]
+    },
+    {
+      "id": "c-profile-store",
+      "from": "profile-screen",
+      "to": "store-router",
+      "label": "GET /api/profile/collections",
+      "flowIds": ["profile-card-image"]
+    },
+    {
+      "id": "c-profile-tcg",
+      "from": "profile-screen",
+      "to": "tcg-images",
+      "label": "fallback CDN build",
+      "flowIds": ["profile-card-image"]
+    },
+    {
+      "id": "c-tcg-setcodes",
+      "from": "tcg-images",
+      "to": "set-codes-app",
+      "label": "setToSetCode()",
+      "flowIds": ["two-set-languages", "profile-card-image"]
+    },
+    {
+      "id": "c-setcodes-json",
+      "from": "set-codes-app",
+      "to": "tcg-json-app",
+      "label": "nameToId lookup",
+      "flowIds": ["two-set-languages"]
+    },
+    {
+      "id": "c-tcg-cdn-out",
+      "from": "tcg-images",
+      "to": "tcg-cdn",
+      "label": "Image { uri }",
+      "flowIds": ["profile-card-image", "two-set-languages"]
+    },
+    {
+      "id": "c-upload-router",
+      "from": "image-upload",
+      "to": "images-router",
+      "label": "POST upload-base64",
+      "flowIds": ["upload-photo"]
+    },
+    {
+      "id": "c-upload-cloud",
+      "from": "images-router",
+      "to": "cloudinary",
+      "label": "secure_url",
+      "flowIds": ["upload-photo"]
+    },
+    {
+      "id": "c-pd-lang-lookup",
+      "from": "pd-lang",
+      "to": "lookup",
+      "label": "set_name + num stored",
+      "flowIds": ["two-set-languages"]
+    },
+    {
+      "id": "c-cdn-lang-out",
+      "from": "set-code-server",
+      "to": "cdn-lang",
+      "label": "Vivid Voltage → swsh4",
+      "flowIds": ["two-set-languages"]
+    },
+    {
+      "id": "c-addcard-poke",
+      "from": "profile-screen",
+      "to": "pokedata-router",
+      "label": "search + card lookup",
+      "flowIds": ["add-card-search"]
+    },
+    {
+      "id": "c-poke-router-api",
+      "from": "pokedata-router",
+      "to": "pokedata-api",
+      "label": "external API",
+      "flowIds": ["add-card-search", "pokedata-cache"]
+    }
+  ],
+  "flows": [
+    {
+      "id": "two-set-languages",
+      "name": "Two set languages → one CDN",
+      "description": "Pokedata and images.pokemontcg.io use different identifiers for the same product. Mapping turns set names, numeric ids, or short codes into the official TCG set code (e.g. swsh4) used in the image URL.",
+      "example": "Pokedata: set_name \"Vivid Voltage\", num \"025\" → setToSetCode → swsh4 → https://images.pokemontcg.io/swsh4/025_hires.png",
+      "connectionIds": [
+        "c-pd-lang-lookup",
+        "c-lookup-setmap",
+        "c-setmap-json-srv",
+        "c-setcodes-json",
+        "c-cdn-lang-out",
+        "c-lookup-cdn",
+        "c-tcg-setcodes",
+        "c-tcg-cdn-out"
+      ],
+      "steps": [
+        {
+          "title": "1. Pokedata speaks its own language",
+          "detail": "Search/card API returns id (59268), set_name (\"Vivid Voltage\"), num (025), sometimes set_id (557) or set_code (SWSH04). These are for pricing and identity — not CDN paths."
+        },
+        {
+          "title": "2. CDN speaks set code + number",
+          "detail": "images.pokemontcg.io only accepts official Pokémon TCG API set ids: /{setCode}/{number}_hires.png (e.g. swsh4/025)."
+        },
+        {
+          "title": "3. setToSetCode() bridges them",
+          "detail": "App: pokemonTcgSetCodes.ts tries pokemonTcgSets.json nameToId, then static SET_NAME_TO_CODE, SET_ID_TO_CODE, POKEDATA_SET_CODE_TO_TCG. Server: setCodeMap.ts uses JSON only (copy json to dist on build)."
+        },
+        {
+          "title": "4. buildImageUrl / getPokemonTcgImageUrl*",
+          "detail": "Server lookup.ts and app pokemonTcgImages.ts assemble the CDN URL. If setId is null in DB but setName exists, server resolves from setName on cache read."
+        },
+        {
+          "title": "5. Sets not on CDN",
+          "detail": "App SET_CODES_NOT_ON_CDN (asc, pfl): client skips building a 404 URL; use server imageUrl from API or placeholder. Refresh sets: pnpm run fetch-tcg-sets in server."
+        }
+      ]
+    },
+    {
+      "id": "profile-card-image",
+      "name": "Profile collection card image",
+      "description": "Portfolio grid artwork comes from the server when possible; the app only builds CDN URLs as fallback.",
+      "example": "GET collections → cardImageUrl → ProductGrid Image { uri }",
+      "connectionIds": [
+        "c-profile-store",
+        "c-store-cdn",
+        "c-profile-tcg",
+        "c-tcg-cdn-out",
+        "c-profile-api"
+      ],
+      "steps": [
+        {
+          "title": "1. GET /api/profile/collections",
+          "detail": "Server joins collections with card_prices. Builds cardImageUrl: stored imageUrl, else buildImageUrl(collection.set || prices.setId || prices.setName, cardNumber)."
+        },
+        {
+          "title": "2. App waterfall",
+          "detail": "cardImageUrl → getPokemonTcgImageUrlFromSetNumberIfOnCdn(set, number) → getPokemonTcgImageUrl(cardId) if id looks like swsh4-025 → collection.image (Cloudinary) → CARD_PLACEHOLDER_IMAGE."
+        },
+        {
+          "title": "3. No Pokedata on every profile load",
+          "detail": "Prices/images come from card_prices if last_fetched_at < 48h. Pokedata is called only when cache miss/stale or user adds a card with cardId."
+        }
+      ]
+    },
+    {
+      "id": "pokedata-cache",
+      "name": "Pokedata price + image cache",
+      "description": "getCardLookupOrFetch stores pricing and resolved image URL in card_prices for 48 hours.",
+      "connectionIds": ["c-pd-to-lookup", "c-lookup-cdn", "c-store-lookup", "c-poke-router-api"],
+      "cacheLayers": [
+        {
+          "where": "Postgres — card_prices",
+          "what": "marketPrice, setName, setId, cardNumber, imageUrl, last_fetched_at",
+          "persist": "Permanent row per Pokedata card id",
+          "recalled": "GET /pokedata/card/:id and GET /api/profile/collections"
+        }
+      ],
+      "steps": [
+        {
+          "title": "1. Cache hit",
+          "detail": "Return from DB; imageUrl rebuilt from setName if setId was null."
+        },
+        {
+          "title": "2. Cache miss / stale",
+          "detail": "Call Pokedata pricing API; map set_name via setToSetCode; UPSERT card_prices and daily card_price_history."
+        }
+      ]
+    },
+    {
+      "id": "upload-photo",
+      "name": "Upload user photo (Cloudinary)",
+      "description": "Physical card photos, listing images, avatars — not official TCG scans.",
+      "connectionIds": ["c-upload-router", "c-upload-cloud", "c-profile-api"],
+      "steps": [
+        {
+          "title": "1. Local URI",
+          "detail": "ImagePicker returns file:// or blob:. isExternalUrl() is false — must upload."
+        },
+        {
+          "title": "2. uploadImage()",
+          "detail": "Base64 POST to DOMAIN/images/upload-base64 with Bearer session."
+        },
+        {
+          "title": "3. Store URL",
+          "detail": "collections.image, listing photos, profile avatar — https://res.cloudinary.com/..."
+        }
+      ]
+    },
+    {
+      "id": "add-card-search",
+      "name": "Add card — search & pick image",
+      "description": "AddCardModal uses Pokedata search then shows CDN preview via client set mapping.",
+      "connectionIds": ["c-addcard-poke", "c-poke-router-api", "c-tcg-setcodes", "c-tcg-cdn-out"],
+      "steps": [
+        {
+          "title": "1. Search",
+          "detail": "GET /pokedata/search?query=… → list of cards with Pokedata ids."
+        },
+        {
+          "title": "2. Card detail",
+          "detail": "GET /pokedata/card/:id → prices + setName/num; server may already have imageUrl in cache."
+        },
+        {
+          "title": "3. Preview in modal",
+          "detail": "getPokemonTcgImageUrlFromSetNumberIfOnCdn(set, cardNumber) for thumbnail before save."
+        }
+      ]
+    }
+  ]
+}
